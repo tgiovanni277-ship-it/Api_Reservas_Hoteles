@@ -1,0 +1,17 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT_DIR / ".env")
+
+API_SECRET_KEY = os.getenv("API_SECRET_KEY", "clave-demo-cambiar-antes-de-publicar")
+API_USERNAME = os.getenv("API_USERNAME", "teacher")
+API_PASSWORD = os.getenv("API_PASSWORD", "demo123")
+TOKEN_HOURS = int(os.getenv("API_TOKEN_HOURS", "1"))
+DATABASE = Path(os.getenv("API_DB_PATH", str(ROOT_DIR / "reservas_hotel.db")))
+if not DATABASE.is_absolute():
+    DATABASE = ROOT_DIR / DATABASE
+
+DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
