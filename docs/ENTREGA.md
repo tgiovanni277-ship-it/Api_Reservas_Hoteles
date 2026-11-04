@@ -31,5 +31,5 @@ El servidor responde `400` si los datos no pasan las validaciones, `401` si las 
 ## Persistencia y ejecución
 
 SQLite guarda los datos en `reservas_hotel.db`. La aplicación crea la tabla al arrancar y reutiliza ese archivo en reinicios. Instala dependencias con `pip install -r requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python run.py`.
-
+ Giovanni Torres
 
