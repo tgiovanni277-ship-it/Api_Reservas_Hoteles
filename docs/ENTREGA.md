@@ -32,4 +32,4 @@ El servidor responde `400` si los datos no pasan las validaciones, `401` si las 
 
 SQLite guarda los datos en `reservas_hotel.db`. La aplicación crea la tabla al arrancar y reutiliza ese archivo en reinicios. Instala dependencias con `pip install -r requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python run.py`.
 
-La configuración de Firebase corresponde al taller de Cloud separado y no es necesaria para esta API de personalización.
+
