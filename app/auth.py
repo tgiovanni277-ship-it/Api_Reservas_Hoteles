@@ -2,7 +2,7 @@ from functools import wraps
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -46,7 +46,7 @@ def token_required(view):
         if len(parts) != 2 or parts[0].lower() != "bearer":
             return jsonify({"error": "Usa Authorization: Bearer <token>"}), 401
         try:
-            g.jwt_payload = jwt.decode(
+            jwt.decode(
                 parts[1],
                 current_app.config["SECRET_KEY"],
                 algorithms=["HS256"],
@@ -60,7 +60,3 @@ def token_required(view):
     return decorated
 
 
-@auth_bp.get("/auth/me")
-@token_required
-def current_user():
-    return jsonify({"username": g.jwt_payload["user"]}), 200

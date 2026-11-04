@@ -4,7 +4,7 @@
 
 1. Crea y activa el entorno Python, instala `requirements.txt` y copia `.env.example` a `.env` siguiendo el README.
 2. Inicia la API con `python run.py`.
-3. En Postman, configura la URL base `http://127.0.0.1:5000`.
+3. Crea una colección y añade la variable `base_url` con el valor `http://127.0.0.1:5000`. Las solicitudes de esta guía usan `{{base_url}}`.
 
 La base `reservas_hotel.db` y la tabla `reservas_hotel` se crean al iniciar la API. Las credenciales son las que pusiste en `.env`.
 
