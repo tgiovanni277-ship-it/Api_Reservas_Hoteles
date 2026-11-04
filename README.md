@@ -73,6 +73,3 @@ La tabla SQLite `reservas_hotel` usa un `id` autoincremental y estos campos:
 
 Los errores previstos son `400` para datos inválidos, `401` para credenciales o token inválidos y `404` para un id inexistente.
 
-## Entrega y evidencias
-
-Sigue `guia_postman.md` para probar login, las cinco operaciones, los errores requeridos y la persistencia con dos registros. Guarda capturas nuevas de la API del hotel. Al preparar la carpeta de entrega, excluye `.venv/`, `.env`, `api_reservas_citas.py`, `reservas_citas.db` y cualquier evidencia de la versión de citas.
