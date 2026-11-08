@@ -17,7 +17,7 @@ API REST en Flask para registrar y administrar estancias de un hotel. Guarda los
     ├── run.py
     └── requirements.txt
 
-`api_reservas_citas.py`, `reservas_citas.db` y `Pruebas_Postman_API_reservas.*` son archivos de la versión anterior de citas. La API de hotel se inicia con `run.py`; no uses las pruebas antiguas como evidencia del hotel.
+La API actual se inicia con `run.py`. El código de las rutas y la persistencia de hotel está en `app/`.
 
 ## Instalación en Windows
 
@@ -33,6 +33,8 @@ Edita `.env` y define un usuario, una contraseña y una clave JWT propios. Luego
     python run.py
 
 La API estará en `http://127.0.0.1:5000`. Al iniciar, crea `reservas_hotel.db` y la tabla `reservas_hotel` si aún no existen. Los datos persisten al reiniciar el servidor.
+
+Abre `http://127.0.0.1:5000/` en el navegador para usar el formulario web de prueba. Inicia sesión con las credenciales configuradas en `.env`; desde ahí puedes crear reservas y consultar la lista. La respuesta HTTP de cada solicitud aparece en la página.
 
 ## Credenciales de desarrollo
 
@@ -60,6 +62,8 @@ La tabla SQLite `reservas_hotel` usa un `id` autoincremental y estos campos:
 | `numero_huespedes` | Entero positivo                           |
 | `estado`           | `pendiente`, `confirmada` o `cancelada`   |
 
+Las reservas pendientes y confirmadas ocupan la habitación desde la fecha de entrada hasta antes de la fecha de salida. No se permiten fechas superpuestas para la misma habitación; las reservas canceladas no bloquean disponibilidad. Una colisión responde `409`.
+
 ## Rutas
 
 | Método   | Ruta             | Acceso     | Acción                                   |
@@ -71,5 +75,5 @@ La tabla SQLite `reservas_hotel` usa un `id` autoincremental y estos campos:
 | `PUT`    | `/reservas/{id}` | JWT Bearer | Reemplaza todos los datos de una reserva |
 | `DELETE` | `/reservas/{id}` | JWT Bearer | Elimina una reserva                      |
 
-Los errores previstos son `400` para datos inválidos, `401` para credenciales o token inválidos y `404` para un id inexistente.
+Los errores previstos son `400` para datos inválidos, `401` para credenciales o token inválidos, `404` para un id inexistente y `409` cuando la habitación ya está reservada para parte de esas fechas.
 

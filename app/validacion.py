@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 ESTADOS_PERMITIDOS = {"pendiente", "confirmada", "cancelada"}
@@ -16,7 +17,11 @@ def validar_reserva_hotel(data):
     fechas = {}
     for campo in ("fecha_entrada", "fecha_salida"):
         valor = data.get(campo)
-        if not isinstance(valor, str):
+        formato_valido = (
+            isinstance(valor, str)
+            and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", valor) is not None
+        )
+        if not formato_valido:
             return f"{campo} debe tener formato AAAA-MM-DD"
         try:
             fechas[campo] = date.fromisoformat(valor)
@@ -38,8 +43,8 @@ def normalizar_reserva(data):
         "huesped": data["huesped"].strip(),
         "correo": data["correo"].strip().lower(),
         "habitacion": data["habitacion"].strip(),
-        "fecha_entrada": data["fecha_entrada"],
-        "fecha_salida": data["fecha_salida"],
+        "fecha_entrada": date.fromisoformat(data["fecha_entrada"]).isoformat(),
+        "fecha_salida": date.fromisoformat(data["fecha_salida"]).isoformat(),
         "numero_huespedes": data["numero_huespedes"],
         "estado": data["estado"],
     }

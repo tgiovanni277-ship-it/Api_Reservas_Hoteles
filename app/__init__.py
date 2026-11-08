@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template
 
 from app.config import (
     API_PASSWORD,
@@ -30,9 +30,6 @@ def create_app():
 
     @app.get("/")
     def inicio():
-        return jsonify({
-            "message": "API de reservas de hotel",
-            "recurso": "/reservas",
-        }), 200
+        return render_template("index.html")
 
     return app

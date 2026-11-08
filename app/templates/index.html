@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba de API · Reservas de hotel</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #18312c;
+      background: #f3f6f2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; }
+    main { width: min(880px, 100%); margin: 0 auto; }
+    header { margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 5vw, 2.3rem); }
+    header p, .hint { color: #526660; }
+    section {
+      margin: 16px 0;
+      padding: 22px;
+      border: 1px solid #d8e2dc;
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 5px 18px #18312c0a;
+    }
+    h2 { margin: 0 0 16px; font-size: 1.15rem; }
+    form { display: grid; gap: 14px; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    label { display: grid; gap: 6px; font-size: .92rem; font-weight: 600; }
+    input, select, button {
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid #bdcbc3;
+      border-radius: 8px;
+      font: inherit;
+    }
+    input:focus, select:focus { outline: 2px solid #77a990; outline-offset: 1px; }
+    button { width: fit-content; border: 0; background: #1f624d; color: white; cursor: pointer; font-weight: 700; }
+    button:hover:not(:disabled) { background: #174b3b; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    #auth-status, #message { min-height: 1.3em; color: #526660; }
+    #message[data-kind="error"] { color: #a02c26; }
+    #message[data-kind="success"] { color: #176b45; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e3e9e5; white-space: nowrap; }
+    th { color: #526660; font-size: .82rem; }
+    #response { overflow: auto; max-height: 260px; padding: 14px; border-radius: 8px; background: #f1f5f2; }
+    @media (max-width: 600px) {
+      body { padding: 22px 12px; }
+      section { padding: 17px; }
+      .fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Reservas de hotel</h1>
+      <p>Formulario sencillo para enviar solicitudes a la API local.</p>
+    </header>
+
+    <section aria-labelledby="login-title">
+      <h2 id="login-title">1. Iniciar sesión</h2>
+      <form id="login-form">
+        <div class="fields">
+          <label>Usuario
+            <input name="username" autocomplete="username" required>
+          </label>
+          <label>Contraseña
+            <input name="clave" type="password" autocomplete="current-password" required>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Obtener token</button>
+          <span id="auth-status" role="status">Necesitas iniciar sesión para crear reservas.</span>
+        </div>
+      </form>
+    </section>
+
+    <section aria-labelledby="reservation-title">
+      <h2 id="reservation-title">2. Crear reserva</h2>
+      <form id="reservation-form">
+        <div class="fields">
+          <label>Nombre del huésped
+            <input name="huesped" required>
+          </label>
+          <label>Correo
+            <input name="correo" type="email" required>
+          </label>
+          <label>Habitación
+            <input name="habitacion" required>
+          </label>
+          <label>Número de huéspedes
+            <input name="numero_huespedes" type="number" min="1" step="1" value="1" required>
+          </label>
+          <label>Fecha de entrada
+            <input name="fecha_entrada" type="date" required>
+          </label>
+          <label>Fecha de salida
+            <input name="fecha_salida" type="date" required>
+          </label>
+          <label>Estado
+            <select name="estado" required>
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">La habitación no puede tener otra reserva pendiente o confirmada en las mismas fechas.</p>
+        <div class="actions">
+          <button id="create-button" type="submit" disabled>Enviar reserva</button>
+          <button id="list-button" type="button">Actualizar lista</button>
+        </div>
+      </form>
+    </section>
+
+    <section aria-labelledby="list-title">
+      <h2 id="list-title">Reservas registradas</h2>
+      <p id="message" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Huésped</th><th>Habitación</th><th>Entrada</th>
+              <th>Salida</th><th>Huéspedes</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="reservations-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="response-title">
+      <h2 id="response-title">Respuesta de la API</h2>
+      <pre id="response">Aún no se han enviado solicitudes.</pre>
+    </section>
+  </main>
+
+  <script>
+    let token = null;
+    const responseBox = document.querySelector("#response");
+    const message = document.querySelector("#message");
+    const reservationsBody = document.querySelector("#reservations-body");
+
+    function showResponse(status, data) {
+      responseBox.textContent = `HTTP ${status}\n${JSON.stringify(data, null, 2)}`;
+    }
+
+    async function readResponse(response) {
+      const data = await response.json().catch(() => ({}));
+      showResponse(response.status, data);
+      return { response, data };
+    }
+
+    function showMessage(text, kind = "") {
+      message.textContent = text;
+      message.dataset.kind = kind;
+    }
+
+    function renderReservations(reservations) {
+      reservationsBody.replaceChildren();
+      for (const reserva of reservations) {
+        const row = document.createElement("tr");
+        for (const value of [
+          reserva.id, reserva.huesped, reserva.habitacion, reserva.fecha_entrada,
+          reserva.fecha_salida, reserva.numero_huespedes, reserva.estado
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.append(cell);
+        }
+        reservationsBody.append(row);
+      }
+    }
+
+    async function loadReservations() {
+      showMessage("Consultando reservas…");
+      try {
+        const { response, data } = await readResponse(await fetch("/reservas"));
+        if (!response.ok) throw new Error(data.error || "No se pudo consultar la API.");
+        renderReservations(data);
+        showMessage(`${data.length} reserva(s) encontrada(s).`, "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    document.querySelector("#login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      try {
+        const { response, data } = await readResponse(await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: form.get("username"), clave: form.get("clave") })
+        }));
+        if (!response.ok) throw new Error(data.error || "No se pudo iniciar sesión.");
+        token = data.token;
+        document.querySelector("#create-button").disabled = false;
+        document.querySelector("#auth-status").textContent = `Sesión iniciada como ${data.username}.`;
+      } catch (error) {
+        token = null;
+        document.querySelector("#create-button").disabled = true;
+        document.querySelector("#auth-status").textContent = error.message;
+      }
+    });
+
+    document.querySelector("#reservation-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!token) return;
+      const form = new FormData(event.currentTarget);
+      const reserva = Object.fromEntries(form.entries());
+      reserva.numero_huespedes = Number(reserva.numero_huespedes);
+      showMessage("Enviando reserva…");
+      try {
+        const { response, data } = await readResponse(await fetch("/reservas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(reserva)
+        }));
+        if (!response.ok) throw new Error(data.error || "No se pudo crear la reserva.");
+        showMessage(data.message, "success");
+        event.currentTarget.reset();
+        await loadReservations();
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    });
+
+    document.querySelector("#list-button").addEventListener("click", loadReservations);
+    loadReservations();
+  </script>
+</body>
+</html>

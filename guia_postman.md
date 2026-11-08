@@ -82,8 +82,9 @@ La respuesta esperada es `200`. Vuelve a hacer **GET** `/reservas`: debe permane
 
 ## Pruebas de error que pide la guía
 
-1. **Datos inválidos — esperado `400`:** intenta crear una reserva donde la salida sea anterior o igual a la entrada, o con `numero_huespedes` igual a cero.
-2. **Sin token — esperado `401`:** intenta `POST /reservas` sin el encabezado Authorization.
-3. **Id inexistente — esperado `404`:** consulta `GET /reservas/999999` (o elige un id que no exista).
+1. **Datos inválidos — esperado `400`:** intenta crear una reserva donde la salida sea anterior o igual a la entrada, con `numero_huespedes` igual a cero, o con una fecha como `20270421` (se exige `AAAA-MM-DD`).
+2. **Habitación ocupada — esperado `409`:** con la reserva confirmada de la habitación `204` del ejemplo ya creada, intenta reservar la habitación `204` del `2027-04-22` al `2027-04-23`.
+3. **Sin token — esperado `401`:** intenta `POST /reservas` sin el encabezado Authorization.
+4. **Id inexistente — esperado `404`:** consulta `GET /reservas/999999` (o elige un id que no exista).
 
-Guarda capturas de login, las cinco operaciones CRUD y estos tres errores. Las capturas y el documento `Pruebas_Postman_API_reservas.*` existentes son de la versión de citas, no de la API de hotel.
+Guarda capturas de login, las operaciones CRUD y estos cuatro errores para documentar la API de hotel.

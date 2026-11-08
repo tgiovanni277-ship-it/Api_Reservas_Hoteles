@@ -26,7 +26,9 @@ La API administra estancias hoteleras con Flask y SQLite. El acceso de escritura
 | `PUT` | `/reservas/{id}` | Actualiza una reserva; requiere JWT Bearer |
 | `DELETE` | `/reservas/{id}` | Elimina una reserva; requiere JWT Bearer |
 
-El servidor responde `400` si los datos no pasan las validaciones, `401` si las credenciales o el token faltan o son inválidos y `404` si el id no existe. La guía completa de Postman está en `guia_postman.md`.
+Las fechas deben tener exactamente el formato `AAAA-MM-DD`. Las reservas pendientes y confirmadas ocupan la habitación en el intervalo desde la entrada (incluida) hasta la salida (excluida); si se solapan con otra reserva de la misma habitación, el servidor responde `409`. Las reservas canceladas no bloquean disponibilidad.
+
+El servidor responde `400` si los datos no pasan las validaciones, `401` si las credenciales o el token faltan o son inválidos, `404` si el id no existe y `409` si la habitación ya está reservada para esas fechas. La guía completa de Postman está en `guia_postman.md`.
 
 ## Persistencia y ejecución
 

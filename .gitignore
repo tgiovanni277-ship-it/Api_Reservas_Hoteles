@@ -1,7 +1,6 @@
 .venv/
 __pycache__/
 *.py[cod]
-reservas_citas.db
 reservas_hotel.db
 *.db-journal
 *.docx~
