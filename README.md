@@ -1,6 +1,6 @@
 # API de reservas de hotel
 
-API REST en Flask para registrar y administrar estancias de un hotel. Guarda los datos en SQLite y conserva el inicio de sesión con JWT, conforme a la guía de personalización. Firebase no es necesario para esta API; el taller de Firebase es una práctica aparte.
+API REST en Flask para registrar y administrar estancias de un hotel. Guarda los datos en SQLite y conserva el inicio de sesión con JWT.
 
 ## Estructura
 
@@ -76,4 +76,3 @@ Las reservas pendientes y confirmadas ocupan la habitación desde la fecha de en
 | `DELETE` | `/reservas/{id}` | JWT Bearer | Elimina una reserva                      |
 
 Los errores previstos son `400` para datos inválidos, `401` para credenciales o token inválidos, `404` para un id inexistente y `409` cuando la habitación ya está reservada para parte de esas fechas.
-
