@@ -1,34 +1,99 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f4f4ef">
-<title>Estancias — Reservas de hotel</title>
-<link rel="stylesheet" href="/src/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f4ef">
+  <title>Estancias — Reservas de hotel</title>
+  <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="/" aria-label="Estancias, inicio"><span class="brand-mark" aria-hidden="true">E</span><span class="brand-name">Estancias</span></a>
-  <div class="top-actions"><span id="api-state" class="api-state" data-state="loading" role="status"><span class="api-dot" aria-hidden="true"></span><span id="api-state-label">Conectando</span></span><button id="auth-button" class="button secondary small" type="button">Iniciar sesión</button></div>
+  <div class="top-actions">
+    <span id="api-state" class="api-state" data-state="loading" role="status"><span class="api-dot" aria-hidden="true"></span><span id="api-state-label">Inicia sesión</span></span>
+    <div id="session-profile" class="session-profile" hidden><span id="role-badge" class="role-badge"></span><span id="profile-name" class="profile-name"></span></div>
+    <button id="auth-button" class="button secondary small" type="button" hidden>Cerrar sesión</button>
+  </div>
 </header>
-<main class="shell">
-  <div class="page-heading"><div><p class="eyebrow">Administración · Reservas</p><h1>Calendario de estancias</h1><p class="intro">Consulta entradas, salidas y ocupación por habitación. Selecciona un día para ver sus reservas.</p></div><button id="new-booking-button" class="button" type="button">＋ <span>Nueva reserva</span></button></div>
+
+<main id="auth-view" class="auth-shell">
+  <section class="auth-story">
+    <p class="eyebrow">Estancias · Tu lugar para desconectar</p>
+    <h1>Tu próxima escapada comienza aquí.</h1>
+    <p>Un refugio acogedor para desconectar y disfrutar el viaje. Solicita tu estancia y sigue aquí el estado de tu reserva.</p>
+    <div class="auth-rule"></div>
+  </section>
+  <section class="auth-panel" aria-labelledby="auth-title">
+    <div class="auth-tabs" role="tablist" aria-label="Acceso a la cuenta">
+      <button id="login-tab" class="auth-tab active" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
+      <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false">Crear cuenta</button>
+    </div>
+    <div class="auth-heading"><p class="eyebrow">Acceso seguro</p><h2 id="auth-title">Bienvenido</h2><p id="auth-description">Continúa con tu cuenta para ver las funciones disponibles.</p></div>
+    <form id="login-form" class="auth-form">
+      <label>Correo electrónico o usuario<input name="username" autocomplete="username" required></label>
+      <label>Contraseña<input name="clave" type="password" autocomplete="current-password" required></label>
+      <button class="button" type="submit">Entrar</button>
+    </form>
+    <form id="register-form" class="auth-form" hidden>
+      <label>Nombre completo<input name="huesped" autocomplete="name" required maxlength="120"></label>
+      <label>Correo electrónico<input name="correo" type="email" autocomplete="email" required maxlength="254"></label>
+      <label>Contraseña<input name="clave" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+      <p class="form-hint">Las cuentas nuevas tienen acceso de huésped. El acceso de administración se asigna por configuración del sistema.</p>
+      <button class="button" type="submit">Crear cuenta de huésped</button>
+    </form>
+    <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<main id="admin-view" class="shell" hidden>
+  <div class="page-heading"><div><p class="eyebrow">Administración · Reservas</p><h1>Calendario de estancias</h1><p class="intro">Revisa ocupación, entradas y salidas. Selecciona un día para consultar su agenda.</p></div><button id="new-booking-button" class="button" type="button">＋ <span>Nueva reserva</span></button></div>
   <section class="summary" aria-label="Resumen de reservas">
-    <div class="summary-item"><span id="month-count" class="summary-number">—</span><span class="summary-label">reservas este mes</span></div>
+    <div class="summary-item"><span id="month-count" class="summary-number">—</span><span class="summary-label">reservas activas este mes</span></div>
     <div class="summary-item"><span id="today-count" class="summary-number">—</span><span class="summary-label">habitaciones ocupadas hoy</span></div>
     <div class="summary-item"><span id="arrival-count" class="summary-number">—</span><span class="summary-label">entradas este mes</span></div>
+  </section>
+  <section class="pending-requests" aria-labelledby="pending-title">
+    <div class="pending-heading">
+      <div><p class="eyebrow">Bandeja de entrada</p><h2 id="pending-title">Solicitudes por confirmar</h2></div>
+      <span id="pending-count" class="pending-count" aria-label="Solicitudes pendientes">0</span>
+    </div>
+    <div id="pending-list" class="pending-list" aria-live="polite"></div>
+    <p id="pending-message" class="message" role="status" aria-live="polite"></p>
   </section>
   <div class="workspace">
     <section aria-label="Calendario mensual">
       <div class="calendar-toolbar"><h2 id="month-label" class="month-label" aria-live="polite"></h2><div class="month-actions"><button id="today-button" class="button secondary small" type="button">Hoy</button><button id="previous-month" class="icon-button" type="button" aria-label="Mes anterior">‹</button><button id="next-month" class="icon-button" type="button" aria-label="Mes siguiente">›</button></div></div>
       <div class="calendar"><div class="weekdays" aria-hidden="true"><span class="weekday">Lun</span><span class="weekday">Mar</span><span class="weekday">Mié</span><span class="weekday">Jue</span><span class="weekday">Vie</span><span class="weekday">Sáb</span><span class="weekday">Dom</span></div><div id="calendar-days" class="days" role="grid" aria-label="Días del mes"></div></div>
-      <div class="calendar-legend" aria-label="Leyenda"><span class="legend-item"><span class="legend-dot" aria-hidden="true"></span>Confirmada / en estancia</span><span class="legend-item"><span class="legend-dot pending" aria-hidden="true"></span>Pendiente</span></div>
+      <div class="calendar-legend" aria-label="Leyenda"><span class="legend-item"><span class="legend-dot" aria-hidden="true"></span>Confirmada o en estancia</span><span class="legend-item"><span class="legend-dot pending" aria-hidden="true"></span>Pendiente</span></div>
       <p id="message" class="message" role="status" aria-live="polite"></p>
     </section>
     <aside class="side" aria-labelledby="selected-heading"><div class="side-heading"><div><h2 id="selected-heading">Agenda del día</h2><p id="selected-label" class="selected-label"></p></div><button id="side-new-button" class="button ghost small" type="button">＋ Crear</button></div><div id="agenda" class="agenda" aria-live="polite"></div><p class="note">La estancia ocupa desde la entrada hasta el día anterior a la salida. Las reservas canceladas no cuentan como ocupación.</p></aside>
   </div>
 </main>
+
+<main id="user-view" class="shell" hidden>
+  <div class="page-heading"><div><p class="eyebrow">Portal de huésped</p><h1 id="guest-greeting">Mis estancias</h1><p class="intro">Solicita una reserva y consulta aquí el estado de tus estancias.</p></div></div>
+  <div class="guest-layout">
+    <section class="guest-request">
+      <p class="eyebrow">Nueva solicitud</p><h2>Planifica tu estancia</h2>
+      <form id="guest-reservation-form" class="guest-form">
+        <label>Habitación solicitada<input name="habitacion" required maxlength="40" placeholder="Ej. 204"></label>
+        <label>Número de huéspedes<input name="numero_huespedes" type="number" min="1" step="1" value="1" required></label>
+        <label>Fecha de entrada<input name="fecha_entrada" type="date" required></label>
+        <label>Fecha de salida<input name="fecha_salida" type="date" required></label>
+        <p class="form-hint">Tu solicitud quedará pendiente de confirmación. La habitación se confirma según disponibilidad.</p>
+        <button id="guest-submit" class="button" type="submit">Enviar solicitud</button>
+      </form>
+      <p id="guest-message" class="message" role="status" aria-live="polite"></p>
+    </section>
+    <section class="guest-stays" aria-labelledby="guest-stays-title">
+      <div class="guest-stays-heading"><div><p class="eyebrow">Tu cuenta</p><h2 id="guest-stays-title">Mis reservas</h2></div><span id="guest-stays-count" class="guest-count">0</span></div>
+      <div id="guest-reservations" class="guest-reservations" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+
 <dialog id="booking-dialog" aria-labelledby="booking-dialog-title">
   <div class="dialog-head"><div><h2 id="booking-dialog-title">Nueva reserva</h2><p>Registra una estancia para una habitación.</p></div><button class="icon-button" type="button" data-close="booking-dialog" aria-label="Cerrar">×</button></div>
   <form id="reservation-form" class="dialog-body">
@@ -42,15 +107,9 @@
       <label>Estado<select name="estado" required><option value="pendiente">Pendiente</option><option value="confirmada">Confirmada</option><option value="cancelada">Cancelada</option></select></label>
     </div>
     <p class="form-hint">No se aceptan estancias superpuestas en la misma habitación. La API valida esta regla al guardar.</p>
-    <div class="form-actions"><button class="button secondary" type="button" data-close="booking-dialog">Cancelar</button><button id="save-booking-button" class="button" type="submit" disabled>Inicia sesión para guardar</button></div>
+    <div class="form-actions"><button class="button secondary" type="button" data-close="booking-dialog">Cancelar</button><button id="save-booking-button" class="button" type="submit">Guardar reserva</button></div>
   </form>
-</dialog>
-<dialog id="login-dialog" aria-labelledby="login-dialog-title">
-  <div class="dialog-head"><div><h2 id="login-dialog-title">Acceso administrativo</h2><p>Inicia sesión para registrar reservas.</p></div><button class="icon-button" type="button" data-close="login-dialog" aria-label="Cerrar">×</button></div>
-  <form id="login-form" class="dialog-body"><label>Usuario<input name="username" autocomplete="username" required></label><label>Contraseña<input name="clave" type="password" autocomplete="current-password" required></label><div class="form-actions"><button class="button secondary" type="button" data-close="login-dialog">Cancelar</button><button class="button" type="submit">Iniciar sesión</button></div></form>
-  <p id="auth-message" class="login-label" role="status"></p>
 </dialog>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
-

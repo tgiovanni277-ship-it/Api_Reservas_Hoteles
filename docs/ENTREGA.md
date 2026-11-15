@@ -1,6 +1,6 @@
 # API de reservas de hotel
 
-La API administra estancias hoteleras con Flask y SQLite. El acceso a reservas se protege con JWT firmado por la propia API. El frontend con calendario vive en frontend/ y se despliega por separado en Vercel.
+La API administra estancias hoteleras con Flask y SQLite. El JWT determina el rol admin o user; la API aplica permisos por ruta y limita a cada huésped a sus propias reservas. El frontend separado se despliega en Vercel.
 
 ## Tabla `reservas_hotel`
 
@@ -20,11 +20,12 @@ La API administra estancias hoteleras con Flask y SQLite. El acceso a reservas s
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/login` | Recibe `username` y `clave`; devuelve un JWT |
-| `GET` | `/reservas` | Lista reservas; requiere JWT Bearer |
-| `GET` | `/reservas/{id}` | Consulta una reserva; requiere JWT Bearer |
-| `POST` | `/reservas` | Crea una reserva; requiere JWT Bearer |
-| `PUT` | `/reservas/{id}` | Actualiza una reserva; requiere JWT Bearer |
-| `DELETE` | `/reservas/{id}` | Elimina una reserva; requiere JWT Bearer |
+| `POST` | `/register` | Crea cuenta de huésped con rol user; devuelve JWT |
+| `GET` | `/reservas` | Admin: todas; huésped: propias; requiere JWT |
+| `GET` | `/reservas/{id}` | Admin: cualquiera; huésped: propia; requiere JWT |
+| `POST` | `/reservas` | Admin crea; huésped solicita pendiente; requiere JWT |
+| `PUT` | `/reservas/{id}` | Actualiza una reserva; solo admin |
+| `DELETE` | `/reservas/{id}` | Admin elimina; huésped cancela la propia |
 
 Las fechas deben tener exactamente el formato `AAAA-MM-DD`. Las reservas pendientes y confirmadas ocupan la habitación en el intervalo desde la entrada (incluida) hasta la salida (excluida); si se solapan con otra reserva de la misma habitación, el servidor responde `409`. Las reservas canceladas no bloquean disponibilidad.
 
@@ -33,6 +34,10 @@ El servidor responde `400` si los datos no pasan las validaciones, `401` si las 
 ## Frontend y despliegue
 
 La interfaz y el calendario se desarrollan en frontend/ con Vite. En Vercel, configura frontend/ como Root Directory y VITE_API_BASE_URL con el dominio HTTPS de Flask en Azure. Configura CORS_ALLOWED_ORIGINS en la API con los dominios Vercel autorizados.
+
+## Roles y acceso
+
+El administrador inicia sesión con API_USERNAME y API_PASSWORD configurados en el backend; revisa las solicitudes pendientes de huéspedes y puede confirmarlas. El huésped se registra con correo y contraseña; el registro asigna siempre el rol user. El JWT firmado comunica el rol a Flask. Las consultas de huésped se filtran por user_id; el huésped solo puede solicitar y cancelar sus reservas. Los registros preexistentes de SQLite quedan sin propietario y solo son visibles para admin.
 
 ## Persistencia y ejecución
 

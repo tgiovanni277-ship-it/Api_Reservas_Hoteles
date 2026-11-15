@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
-from app.auth import token_required
+from app.auth import admin_required, token_required
 from app.db import get_db
 from app.validacion import normalizar_reserva, validar_reserva_hotel
 
@@ -27,13 +27,45 @@ def habitacion_disponible(connection, reserva, excluir_id=None):
     return connection.execute(consulta, parametros).fetchone() is None
 
 
+def reserva_visible(connection, reserva_id):
+    columns = """
+        id, huesped, correo, habitacion, fecha_entrada, fecha_salida,
+        numero_huespedes, estado
+    """
+    if g.current_user["role"] == "admin":
+        return connection.execute(
+            "SELECT " + columns + " FROM reservas_hotel WHERE id = ?",
+            (reserva_id,),
+        ).fetchone()
+    return connection.execute(
+        "SELECT " + columns + " FROM reservas_hotel WHERE id = ? AND user_id = ?",
+        (reserva_id, g.current_user.get("user_id")),
+    ).fetchone()
+
+
 @reservas_bp.get("/reservas")
 @token_required
 def listar_reservas():
     with get_db() as connection:
-        rows = connection.execute(
-            "SELECT * FROM reservas_hotel ORDER BY id"
-        ).fetchall()
+        if g.current_user["role"] == "admin":
+            rows = connection.execute(
+                """
+                SELECT id, huesped, correo, habitacion, fecha_entrada, fecha_salida,
+                       numero_huespedes, estado
+                FROM reservas_hotel ORDER BY fecha_entrada, id
+                """
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT id, huesped, correo, habitacion, fecha_entrada, fecha_salida,
+                       numero_huespedes, estado
+                FROM reservas_hotel
+                WHERE user_id = ?
+                ORDER BY fecha_entrada, id
+                """,
+                (g.current_user.get("user_id"),),
+            ).fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
 
@@ -43,9 +75,7 @@ def consultar_reserva(reserva_id):
     if not reserva_id.isdigit():
         return jsonify({"error": "Reserva de hotel no encontrada"}), 404
     with get_db() as connection:
-        row = connection.execute(
-            "SELECT * FROM reservas_hotel WHERE id = ?", (int(reserva_id),)
-        ).fetchone()
+        row = reserva_visible(connection, int(reserva_id))
     if row is None:
         return jsonify({"error": "Reserva de hotel no encontrada"}), 404
     return jsonify(dict(row)), 200
@@ -54,7 +84,22 @@ def consultar_reserva(reserva_id):
 @reservas_bp.post("/reservas")
 @token_required
 def crear_reserva():
-    data = request.get_json(silent=True)
+    incoming = request.get_json(silent=True)
+    if not isinstance(incoming, dict):
+        return jsonify({"error": "Envía un objeto JSON"}), 400
+
+    if g.current_user["role"] == "user":
+        data = {
+            **incoming,
+            "huesped": g.current_user["name"],
+            "correo": g.current_user["email"],
+            "estado": "pendiente",
+        }
+        owner_id = g.current_user.get("user_id")
+    else:
+        data = incoming
+        owner_id = None
+
     error = validar_reserva_hotel(data)
     if error:
         return jsonify({"error": error}), 400
@@ -72,13 +117,13 @@ def crear_reserva():
                 """
                 INSERT INTO reservas_hotel (
                     huesped, correo, habitacion, fecha_entrada, fecha_salida,
-                    numero_huespedes, estado
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    numero_huespedes, estado, user_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reserva["huesped"], reserva["correo"], reserva["habitacion"],
                     reserva["fecha_entrada"], reserva["fecha_salida"],
-                    reserva["numero_huespedes"], reserva["estado"],
+                    reserva["numero_huespedes"], reserva["estado"], owner_id,
                 ),
             )
             new_id = cursor.lastrowid
@@ -88,7 +133,7 @@ def crear_reserva():
 
 
 @reservas_bp.put("/reservas/<string:reserva_id>")
-@token_required
+@admin_required
 def actualizar_reserva(reserva_id):
     data = request.get_json(silent=True)
     error = validar_reserva_hotel(data)
@@ -136,10 +181,16 @@ def actualizar_reserva(reserva_id):
 def eliminar_reserva(reserva_id):
     if not reserva_id.isdigit():
         return jsonify({"error": "Reserva de hotel no encontrada"}), 404
+    reserva_id = int(reserva_id)
     with get_db() as connection:
-        cursor = connection.execute(
-            "DELETE FROM reservas_hotel WHERE id = ?", (int(reserva_id),)
-        )
-        if cursor.rowcount == 0:
+        reserva = reserva_visible(connection, reserva_id)
+        if reserva is None:
             return jsonify({"error": "Reserva de hotel no encontrada"}), 404
-    return jsonify({"message": "Reserva de hotel eliminada"}), 200
+        if g.current_user["role"] == "admin":
+            connection.execute("DELETE FROM reservas_hotel WHERE id = ?", (reserva_id,))
+            return jsonify({"message": "Reserva eliminada"}), 200
+        connection.execute(
+            "UPDATE reservas_hotel SET estado = 'cancelada' WHERE id = ?",
+            (reserva_id,),
+        )
+    return jsonify({"message": "Reserva cancelada"}), 200

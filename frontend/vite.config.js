@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/reservas": { target: apiTarget, changeOrigin: true },
-      "/login": { target: apiTarget, changeOrigin: true }
+      "/login": { target: apiTarget, changeOrigin: true },
+      "/register": { target: apiTarget, changeOrigin: true }
     }
   }
 });
