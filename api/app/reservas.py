@@ -28,6 +28,7 @@ def habitacion_disponible(connection, reserva, excluir_id=None):
 
 
 @reservas_bp.get("/reservas")
+@token_required
 def listar_reservas():
     with get_db() as connection:
         rows = connection.execute(
@@ -37,6 +38,7 @@ def listar_reservas():
 
 
 @reservas_bp.get("/reservas/<string:reserva_id>")
+@token_required
 def consultar_reserva(reserva_id):
     if not reserva_id.isdigit():
         return jsonify({"error": "Reserva de hotel no encontrada"}), 404
@@ -141,4 +143,3 @@ def eliminar_reserva(reserva_id):
         if cursor.rowcount == 0:
             return jsonify({"error": "Reserva de hotel no encontrada"}), 404
     return jsonify({"message": "Reserva de hotel eliminada"}), 200
-

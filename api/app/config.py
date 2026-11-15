@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env")
 
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "clave-demo-cambiar-antes-de-publicar")
@@ -15,3 +15,4 @@ if not DATABASE.is_absolute():
     DATABASE = ROOT_DIR / DATABASE
 
 DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
+CORS_ALLOWED_ORIGINS = tuple(origin.strip().rstrip("/") for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip())

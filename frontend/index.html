@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f4f4ef">
+<title>Estancias — Reservas de hotel</title>
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Estancias, inicio"><span class="brand-mark" aria-hidden="true">E</span><span class="brand-name">Estancias</span></a>
+  <div class="top-actions"><span id="api-state" class="api-state" data-state="loading" role="status"><span class="api-dot" aria-hidden="true"></span><span id="api-state-label">Conectando</span></span><button id="auth-button" class="button secondary small" type="button">Iniciar sesión</button></div>
+</header>
+<main class="shell">
+  <div class="page-heading"><div><p class="eyebrow">Administración · Reservas</p><h1>Calendario de estancias</h1><p class="intro">Consulta entradas, salidas y ocupación por habitación. Selecciona un día para ver sus reservas.</p></div><button id="new-booking-button" class="button" type="button">＋ <span>Nueva reserva</span></button></div>
+  <section class="summary" aria-label="Resumen de reservas">
+    <div class="summary-item"><span id="month-count" class="summary-number">—</span><span class="summary-label">reservas este mes</span></div>
+    <div class="summary-item"><span id="today-count" class="summary-number">—</span><span class="summary-label">habitaciones ocupadas hoy</span></div>
+    <div class="summary-item"><span id="arrival-count" class="summary-number">—</span><span class="summary-label">entradas este mes</span></div>
+  </section>
+  <div class="workspace">
+    <section aria-label="Calendario mensual">
+      <div class="calendar-toolbar"><h2 id="month-label" class="month-label" aria-live="polite"></h2><div class="month-actions"><button id="today-button" class="button secondary small" type="button">Hoy</button><button id="previous-month" class="icon-button" type="button" aria-label="Mes anterior">‹</button><button id="next-month" class="icon-button" type="button" aria-label="Mes siguiente">›</button></div></div>
+      <div class="calendar"><div class="weekdays" aria-hidden="true"><span class="weekday">Lun</span><span class="weekday">Mar</span><span class="weekday">Mié</span><span class="weekday">Jue</span><span class="weekday">Vie</span><span class="weekday">Sáb</span><span class="weekday">Dom</span></div><div id="calendar-days" class="days" role="grid" aria-label="Días del mes"></div></div>
+      <div class="calendar-legend" aria-label="Leyenda"><span class="legend-item"><span class="legend-dot" aria-hidden="true"></span>Confirmada / en estancia</span><span class="legend-item"><span class="legend-dot pending" aria-hidden="true"></span>Pendiente</span></div>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </section>
+    <aside class="side" aria-labelledby="selected-heading"><div class="side-heading"><div><h2 id="selected-heading">Agenda del día</h2><p id="selected-label" class="selected-label"></p></div><button id="side-new-button" class="button ghost small" type="button">＋ Crear</button></div><div id="agenda" class="agenda" aria-live="polite"></div><p class="note">La estancia ocupa desde la entrada hasta el día anterior a la salida. Las reservas canceladas no cuentan como ocupación.</p></aside>
+  </div>
+</main>
+<dialog id="booking-dialog" aria-labelledby="booking-dialog-title">
+  <div class="dialog-head"><div><h2 id="booking-dialog-title">Nueva reserva</h2><p>Registra una estancia para una habitación.</p></div><button class="icon-button" type="button" data-close="booking-dialog" aria-label="Cerrar">×</button></div>
+  <form id="reservation-form" class="dialog-body">
+    <div class="fields">
+      <label>Nombre del huésped<input name="huesped" autocomplete="name" required maxlength="120"></label>
+      <label>Correo electrónico<input name="correo" type="email" autocomplete="email" required maxlength="254"></label>
+      <label>Habitación<input name="habitacion" required maxlength="40" placeholder="Ej. 204"></label>
+      <label>Número de huéspedes<input name="numero_huespedes" type="number" min="1" step="1" value="1" required></label>
+      <label>Fecha de entrada<input name="fecha_entrada" type="date" required></label>
+      <label>Fecha de salida<input name="fecha_salida" type="date" required></label>
+      <label>Estado<select name="estado" required><option value="pendiente">Pendiente</option><option value="confirmada">Confirmada</option><option value="cancelada">Cancelada</option></select></label>
+    </div>
+    <p class="form-hint">No se aceptan estancias superpuestas en la misma habitación. La API valida esta regla al guardar.</p>
+    <div class="form-actions"><button class="button secondary" type="button" data-close="booking-dialog">Cancelar</button><button id="save-booking-button" class="button" type="submit" disabled>Inicia sesión para guardar</button></div>
+  </form>
+</dialog>
+<dialog id="login-dialog" aria-labelledby="login-dialog-title">
+  <div class="dialog-head"><div><h2 id="login-dialog-title">Acceso administrativo</h2><p>Inicia sesión para registrar reservas.</p></div><button class="icon-button" type="button" data-close="login-dialog" aria-label="Cerrar">×</button></div>
+  <form id="login-form" class="dialog-body"><label>Usuario<input name="username" autocomplete="username" required></label><label>Contraseña<input name="clave" type="password" autocomplete="current-password" required></label><div class="form-actions"><button class="button secondary" type="button" data-close="login-dialog">Cancelar</button><button class="button" type="submit">Iniciar sesión</button></div></form>
+  <p id="auth-message" class="login-label" role="status"></p>
+</dialog>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
+

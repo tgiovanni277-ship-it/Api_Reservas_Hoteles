@@ -1,6 +1,6 @@
 # API de reservas de hotel
 
-La API administra estancias hoteleras con Flask y SQLite. El acceso de escritura se protege con JWT firmado por la propia API.
+La API administra estancias hoteleras con Flask y SQLite. El acceso a reservas se protege con JWT firmado por la propia API. El frontend con calendario vive en frontend/ y se despliega por separado en Vercel.
 
 ## Tabla `reservas_hotel`
 
@@ -20,18 +20,21 @@ La API administra estancias hoteleras con Flask y SQLite. El acceso de escritura
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/login` | Recibe `username` y `clave`; devuelve un JWT |
-| `GET` | `/reservas` | Lista todas las reservas |
-| `GET` | `/reservas/{id}` | Consulta una reserva por id |
+| `GET` | `/reservas` | Lista reservas; requiere JWT Bearer |
+| `GET` | `/reservas/{id}` | Consulta una reserva; requiere JWT Bearer |
 | `POST` | `/reservas` | Crea una reserva; requiere JWT Bearer |
 | `PUT` | `/reservas/{id}` | Actualiza una reserva; requiere JWT Bearer |
 | `DELETE` | `/reservas/{id}` | Elimina una reserva; requiere JWT Bearer |
 
 Las fechas deben tener exactamente el formato `AAAA-MM-DD`. Las reservas pendientes y confirmadas ocupan la habitación en el intervalo desde la entrada (incluida) hasta la salida (excluida); si se solapan con otra reserva de la misma habitación, el servidor responde `409`. Las reservas canceladas no bloquean disponibilidad.
 
-El servidor responde `400` si los datos no pasan las validaciones, `401` si las credenciales o el token faltan o son inválidos, `404` si el id no existe y `409` si la habitación ya está reservada para esas fechas. La guía completa de Postman está en `guia_postman.md`.
+El servidor responde `400` si los datos no pasan las validaciones, `401` si las credenciales o el token faltan o son inválidos, `404` si el id no existe y `409` si la habitación ya está reservada para esas fechas. La guía completa de Postman está en `docs/guia_postman.md`.
+
+## Frontend y despliegue
+
+La interfaz y el calendario se desarrollan en frontend/ con Vite. En Vercel, configura frontend/ como Root Directory y VITE_API_BASE_URL con el dominio HTTPS de Flask en Azure. Configura CORS_ALLOWED_ORIGINS en la API con los dominios Vercel autorizados.
 
 ## Persistencia y ejecución
 
-SQLite guarda los datos en `reservas_hotel.db`. La aplicación crea la tabla al arrancar y reutiliza ese archivo en reinicios. Instala dependencias con `pip install -r requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python run.py`.
+SQLite guarda los datos en `reservas_hotel.db`. La aplicación crea la tabla al arrancar y reutiliza ese archivo en reinicios. Instala dependencias con `pip install -r api/requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python api/run.py`.
  Giovanni Torres
-

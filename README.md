@@ -1,78 +1,78 @@
-# API de reservas de hotel
+# Reservas de hotel
 
-API REST en Flask para registrar y administrar estancias de un hotel. Guarda los datos en SQLite y conserva el inicio de sesión con JWT.
+Monorepo para el MVP de reservas. El frontend está separado de la API: Vercel publica frontend/, Flask expone la API para Azure y Supabase se incorporará como PostgreSQL en una fase posterior.
 
 ## Estructura
 
-    Custom_Api/
-    ├── app/
-    │   ├── __init__.py       # Configura Flask, SQLite y las rutas
-    │   ├── auth.py           # Login y verificación de JWT
-    │   ├── config.py         # Variables del servidor
-    │   ├── db.py             # Conexión y tabla SQLite
-    │   ├── reservas.py       # Cinco operaciones CRUD
-    │   └── validacion.py     # Reglas de reservas hoteleras
-    ├── docs/ENTREGA.md       # Resumen breve para entregar
-    ├── guia_postman.md       # Pasos y evidencia de API
-    ├── run.py
-    └── requirements.txt
+    API-Reservas-Hotel/
+    ├── frontend/              # Vite: interfaz y calendario, despliegue en Vercel
+    │   ├── src/main.js
+    │   ├── src/style.css
+    │   ├── index.html
+    │   └── vite.config.js
+    ├── api/                    # API Flask, preparada para Azure
+    │   ├── app/
+    │   ├── requirements.txt
+    │   └── run.py
+    ├── docs/
+    ├── .env.example            # variables locales de la API
+    ├── .gitignore
+    └── README.md
 
-La API actual se inicia con `run.py`. El código de las rutas y la persistencia de hotel está en `app/`.
+## Desarrollo local
 
-## Instalación en Windows
-
-Desde la carpeta del proyecto:
+Requiere Python 3.10+ y Node.js LTS. En la raíz del repo, configura primero el backend:
 
     py -m venv .venv
     .\.venv\Scripts\Activate.ps1
-    pip install -r requirements.txt
+    pip install -r api\requirements.txt
     Copy-Item .env.example .env
 
-Edita `.env` y define un usuario, una contraseña y una clave JWT propios. Luego inicia la API:
+Completa .env con credenciales de desarrollo locales; luego inicia Flask en una terminal:
 
-    python run.py
+    python api\run.py
 
-La API estará en `http://127.0.0.1:5000`. Al iniciar, crea `reservas_hotel.db` y la tabla `reservas_hotel` si aún no existen. Los datos persisten al reiniciar el servidor.
+En otra terminal instala e inicia el frontend:
 
-Abre `http://127.0.0.1:5000/` en el navegador para usar el formulario web de prueba. Inicia sesión con las credenciales configuradas en `.env`; desde ahí puedes crear reservas y consultar la lista. La respuesta HTTP de cada solicitud aparece en la página.
+    cd frontend
+    npm install
+    Copy-Item .env.example .env
+    npm run dev
 
-## Credenciales de desarrollo
+Vite publica la interfaz en http://localhost:5173 y envía /login y /reservas al backend local en http://127.0.0.1:5000. La variable opcional VITE_DEV_API_PROXY_TARGET permite cambiar el destino del proxy. Flask también responde en /health.
 
-Las credenciales se leen desde `.env`:
+## Despliegue
 
-- `API_USERNAME`: usuario de login.
-- `API_PASSWORD`: contraseña de login.
-- `API_SECRET_KEY`: secreto con el que Flask firma los JWT.
-- `API_TOKEN_HOURS`: vigencia del token.
-- `API_DB_PATH`: ruta opcional de la base SQLite.
+- Vercel: importa el repositorio y fija frontend/ como Root Directory. El proyecto ejecuta npm run build y publica dist/.
+- Azure Container Apps: construye la API usando api/ como contexto Docker; configura allí los secretos del backend y CORS_ALLOWED_ORIGINS.
+- Frontend de Vercel: define VITE_API_BASE_URL con la URL HTTPS de la API en Azure antes de construir.
+- CORS de Flask: CORS_ALLOWED_ORIGINS es una lista separada por comas de orígenes completos, sin rutas. Añade el dominio de producción de Vercel y los previews concretos que necesites, además de localhost durante desarrollo. No uses * en producción.
 
-`.env` está excluido de Git. No subas contraseñas reales ni el secreto JWT al repositorio.
+El frontend nunca se conecta directamente a SQLite o PostgreSQL. En producción, el navegador llama por HTTPS a Flask en Azure; Flask conecta a PostgreSQL administrado en Supabase cuando se complete esa migración.
 
-## Datos de cada reserva
+## Variables de entorno
 
-La tabla SQLite `reservas_hotel` usa un `id` autoincremental y estos campos:
+El .env de la raíz se usa solo para desarrollo de la API y está ignorado por Git. .env.example contiene marcadores de posición. frontend/.env.example documenta la URL pública que Vite incorpora durante el build; esa URL no es un secreto.
 
-| Campo              | Tipo y regla                              |
-| ------------------ | ----------------------------------------- |
-| `huesped`          | Texto obligatorio                         |
-| `correo`           | Correo obligatorio                        |
-| `habitacion`       | Texto obligatorio                         |
-| `fecha_entrada`    | Fecha `AAAA-MM-DD`                        |
-| `fecha_salida`     | Fecha `AAAA-MM-DD` posterior a la entrada |
-| `numero_huespedes` | Entero positivo                           |
-| `estado`           | `pendiente`, `confirmada` o `cancelada`   |
+- API: API_USERNAME, API_PASSWORD, API_SECRET_KEY, API_TOKEN_HOURS, API_DB_PATH, FLASK_DEBUG, CORS_ALLOWED_ORIGINS.
+- Frontend: VITE_API_BASE_URL (vacía en local para usar el proxy de Vite).
 
-Las reservas pendientes y confirmadas ocupan la habitación desde la fecha de entrada hasta antes de la fecha de salida. No se permiten fechas superpuestas para la misma habitación; las reservas canceladas no bloquean disponibilidad. Una colisión responde `409`.
+No subas contraseñas, tokens, claves o cadenas de conexión a Git.
 
-## Rutas
+## Modelo y reglas de reserva
 
-| Método   | Ruta             | Acceso     | Acción                                   |
-| -------- | ---------------- | ---------- | ---------------------------------------- |
-| `POST`   | `/login`         | Público    | Verifica credenciales y entrega un JWT   |
-| `GET`    | `/reservas`      | Público    | Lista las reservas                       |
-| `GET`    | `/reservas/{id}` | Público    | Consulta una reserva                     |
-| `POST`   | `/reservas`      | JWT Bearer | Crea una reserva                         |
-| `PUT`    | `/reservas/{id}` | JWT Bearer | Reemplaza todos los datos de una reserva |
-| `DELETE` | `/reservas/{id}` | JWT Bearer | Elimina una reserva                      |
+SQLite local conserva la tabla reservas_hotel; las reservas pendientes y confirmadas ocupan una habitación desde la fecha de entrada (incluida) hasta la salida (excluida). Las canceladas no bloquean. Una colisión devuelve HTTP 409. El calendario mensual muestra ocupación registrada y distingue entradas, salidas y reservas canceladas; aún no existe inventario de habitaciones para afirmar disponibilidad global.
 
-Los errores previstos son `400` para datos inválidos, `401` para credenciales o token inválidos, `404` para un id inexistente y `409` cuando la habitación ya está reservada para parte de esas fechas.
+## Rutas principales
+
+| Método | Ruta | Acceso | Acción |
+|---|---|---|---|
+| GET | /health | Público | Estado del servicio, sin datos de huéspedes |
+| POST | /login | Público | Valida credenciales y devuelve JWT |
+| GET | /reservas | JWT Bearer | Lista reservas |
+| GET | /reservas/{id} | JWT Bearer | Consulta una reserva |
+| POST | /reservas | JWT Bearer | Crea una reserva |
+| PUT | /reservas/{id} | JWT Bearer | Actualiza una reserva |
+| DELETE | /reservas/{id} | JWT Bearer | Elimina una reserva |
+
+La guía de solicitudes está en docs/guia_postman.md; el resumen académico, en docs/ENTREGA.md.
