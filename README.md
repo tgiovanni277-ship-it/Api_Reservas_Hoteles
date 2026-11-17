@@ -1,6 +1,7 @@
 # Reservas de hotel
 
 Monorepo para el MVP de reservas. Vercel publica el frontend de Vite; Render ejecuta la API Flask; PostgreSQL en Supabase conserva usuarios y reservas. SQLite sigue disponible para desarrollo local sin `DATABASE_URL`.
+MVP = https://frontend-rho-one-25.vercel.app/
 
 ## Estructura
 
