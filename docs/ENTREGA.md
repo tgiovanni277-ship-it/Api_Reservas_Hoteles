@@ -1,6 +1,6 @@
 # API de reservas de hotel
 
-La API administra estancias hoteleras con Flask y SQLite. El JWT determina el rol admin o user; la API aplica permisos por ruta y limita a cada huésped a sus propias reservas. El frontend separado se despliega en Vercel.
+La API administra estancias hoteleras con Flask y SQLite para desarrollo local o PostgreSQL/Supabase mediante `DATABASE_URL`. El JWT determina el rol admin o user; la API aplica permisos por ruta y limita a cada huésped a sus propias reservas. El frontend separado se despliega en Vercel.
 
 ## Tabla `reservas_hotel`
 
@@ -21,6 +21,8 @@ La API administra estancias hoteleras con Flask y SQLite. El JWT determina el ro
 |---|---|---|
 | `POST` | `/login` | Recibe `username` y `clave`; devuelve un JWT |
 | `POST` | `/register` | Crea cuenta de huésped con rol user; devuelve JWT |
+| `GET` | `/habitaciones` | Lista las 80 habitaciones para usuarios autenticados |
+| `GET` | `/habitaciones/disponibles?fecha_entrada=AAAA-MM-DD&fecha_salida=AAAA-MM-DD` | Consulta inventario libre para el rango solicitado |
 | `GET` | `/reservas` | Admin: todas; huésped: propias; requiere JWT |
 | `GET` | `/reservas/{id}` | Admin: cualquiera; huésped: propia; requiere JWT |
 | `POST` | `/reservas` | Admin crea; huésped solicita pendiente; requiere JWT |
@@ -33,7 +35,7 @@ El servidor responde `400` si los datos no pasan las validaciones, `401` si las 
 
 ## Frontend y despliegue
 
-La interfaz y el calendario se desarrollan en frontend/ con Vite. En Vercel, configura frontend/ como Root Directory y VITE_API_BASE_URL con el dominio HTTPS de Flask en Azure. Configura CORS_ALLOWED_ORIGINS en la API con los dominios Vercel autorizados.
+La interfaz y el calendario se desarrollan en frontend/ con Vite. En Vercel, configura frontend/ como Root Directory y VITE_API_BASE_URL con el dominio HTTPS de Flask en Render. Configura CORS_ALLOWED_ORIGINS en la API con los dominios Vercel autorizados.
 
 ## Roles y acceso
 
@@ -41,5 +43,7 @@ El administrador inicia sesión con API_USERNAME y API_PASSWORD configurados en 
 
 ## Persistencia y ejecución
 
-SQLite guarda los datos en `reservas_hotel.db`. La aplicación crea la tabla al arrancar y reutiliza ese archivo en reinicios. Instala dependencias con `pip install -r api/requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python api/run.py`.
+En local, SQLite guarda los datos en `reservas_hotel.db`. Si `DATABASE_URL` apunta a Supabase PostgreSQL, la aplicación usa PostgreSQL en su lugar. Ejecuta `python api/scripts/migrate_sqlite_to_postgres.py` para copiar las cuentas y reservas conservando sus IDs; el original queda intacto. Instala dependencias con `pip install -r api/requirements.txt`, configura `.env` a partir de `.env.example` y ejecuta `python api/run.py`.
+
+El inventario inicial contiene 80 habitaciones (20 por piso, pisos 1–4). El formulario consulta `/habitaciones/disponibles` para las fechas seleccionadas. Las reservas pendientes y confirmadas ocupan habitación y las canceladas la liberan.
  Giovanni Torres

@@ -62,7 +62,8 @@ def register():
             )
             user_id = cursor.lastrowid
     except Exception as error:
-        if "UNIQUE constraint failed" in str(error):
+        message = str(error).lower()
+        if "unique constraint failed" in message or "duplicate key value violates unique constraint" in message:
             return jsonify({"error": "Ya existe una cuenta con ese correo"}), 409
         raise
 

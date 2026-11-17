@@ -5,6 +5,7 @@ from app.config import (
     API_SECRET_KEY,
     API_USERNAME,
     DATABASE,
+    DATABASE_URL,
     DEBUG,
     CORS_ALLOWED_ORIGINS,
     TOKEN_HOURS,
@@ -19,10 +20,11 @@ def create_app():
     app.config["API_PASSWORD"] = API_PASSWORD
     app.config["TOKEN_HOURS"] = TOKEN_HOURS
     app.config["DATABASE"] = str(DATABASE)
+    app.config["DATABASE_URL"] = DATABASE_URL
     app.config["DEBUG"] = DEBUG
     app.config["CORS_ALLOWED_ORIGINS"] = CORS_ALLOWED_ORIGINS
 
-    init_db(app.config["DATABASE"])
+    init_db(app.config["DATABASE"], app.config["DATABASE_URL"])
 
     from app.auth import auth_bp
     from app.reservas import reservas_bp

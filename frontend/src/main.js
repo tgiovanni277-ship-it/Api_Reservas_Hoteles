@@ -428,6 +428,47 @@ function updateGuestDateRange() {
   }
 }
 
+async function refreshAvailableRooms(formElement, hintElement) {
+  const select = formElement.elements.habitacion;
+  const entry = formElement.elements.fecha_entrada.value;
+  const exit = formElement.elements.fecha_salida.value;
+  select.replaceChildren(new Option("Selecciona fechas primero", ""));
+  select.disabled = true;
+
+  if (!entry || !exit || exit <= entry || !token) {
+    hintElement.textContent = "Selecciona fechas de entrada y salida para consultar disponibilidad.";
+    return;
+  }
+
+  select.replaceChildren(new Option("Buscando habitaciones…", ""));
+  hintElement.textContent = "Consultando disponibilidad para esas fechas…";
+  try {
+    const query = new URLSearchParams({ fecha_entrada: entry, fecha_salida: exit });
+    const rooms = await apiRequest("/habitaciones/disponibles?" + query.toString(), {
+      headers: { Accept: "application/json", Authorization: "Bearer " + token },
+    });
+    if (
+      formElement.elements.fecha_entrada.value !== entry ||
+      formElement.elements.fecha_salida.value !== exit
+    ) return;
+
+    select.replaceChildren(new Option(
+      rooms.length ? "Elige una habitación" : "No hay habitaciones libres en esas fechas",
+      "",
+    ));
+    for (const room of rooms) {
+      select.add(new Option(`Habitación ${room.habitacion} · Piso ${room.piso}`, room.habitacion));
+    }
+    select.disabled = rooms.length === 0;
+    hintElement.textContent = rooms.length
+      ? `${rooms.length} habitación(es) libre(s) en las fechas seleccionadas.`
+      : "Prueba otras fechas; las solicitudes pendientes y confirmadas ocupan habitación.";
+  } catch (error) {
+    select.replaceChildren(new Option("No se pudo cargar disponibilidad", ""));
+    hintElement.textContent = error.message;
+  }
+}
+
 function openAdminBookingDialog() {
   if (!currentUser || currentUser.role !== "admin") return;
   reservationForm.reset();
@@ -435,6 +476,7 @@ function openAdminBookingDialog() {
   reservationForm.elements.fecha_salida.value = addDays(selectedDate, 1);
   updateAdminDateRange();
   bookingDialog.showModal();
+  refreshAvailableRooms(reservationForm, document.querySelector("#admin-room-hint"));
 }
 
 async function loadReservations() {
@@ -451,6 +493,11 @@ async function loadReservations() {
     setApiState("online", "API conectada");
 
     if (currentUser.role === "admin") {
+      const rooms = await apiRequest("/habitaciones", {
+        headers: { Accept: "application/json", Authorization: "Bearer " + token },
+      });
+      document.querySelector("#room-inventory-summary").textContent =
+        `Inventario: ${rooms.length} habitaciones · pisos 1 a 4`;
       renderCalendar();
       renderAgenda();
       renderPendingRequests();
@@ -552,6 +599,14 @@ document.querySelector("#new-booking-button").addEventListener("click", openAdmi
 document.querySelector("#side-new-button").addEventListener("click", openAdminBookingDialog);
 reservationForm.elements.fecha_entrada.addEventListener("change", updateAdminDateRange);
 reservationForm.elements.fecha_salida.addEventListener("change", updateAdminDateRange);
+reservationForm.elements.fecha_entrada.addEventListener("change", () => refreshAvailableRooms(
+  reservationForm,
+  document.querySelector("#admin-room-hint"),
+));
+reservationForm.elements.fecha_salida.addEventListener("change", () => refreshAvailableRooms(
+  reservationForm,
+  document.querySelector("#admin-room-hint"),
+));
 
 reservationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -587,6 +642,14 @@ reservationForm.addEventListener("submit", async (event) => {
 
 guestForm.elements.fecha_entrada.addEventListener("change", updateGuestDateRange);
 guestForm.elements.fecha_salida.addEventListener("change", updateGuestDateRange);
+guestForm.elements.fecha_entrada.addEventListener("change", () => refreshAvailableRooms(
+  guestForm,
+  document.querySelector("#guest-room-hint"),
+));
+guestForm.elements.fecha_salida.addEventListener("change", () => refreshAvailableRooms(
+  guestForm,
+  document.querySelector("#guest-room-hint"),
+));
 
 guestForm.addEventListener("submit", async (event) => {
   event.preventDefault();

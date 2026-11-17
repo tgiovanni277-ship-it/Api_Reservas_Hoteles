@@ -2,11 +2,11 @@
 
 ## Preparar y ejecutar
 
-1. Crea y activa el entorno Python, instala api/requirements.txt y copia `.env.example` a `.env` siguiendo el README.
+1. Crea y activa el entorno Python, instala api/requirements.txt y copia `.env.example` a `.env` siguiendo el README. Deja `DATABASE_URL` vacía para SQLite local o configúrala para PostgreSQL.
 2. Inicia la API con `python api/run.py`.
 3. Crea una colección y añade la variable `base_url` con el valor `http://127.0.0.1:5000`. Las solicitudes de esta guía usan `{{base_url}}`.
 
-La base `reservas_hotel.db` y la tabla `reservas_hotel` se crean al iniciar la API. Las credenciales son las que pusiste en `.env`.
+El esquema y las 80 habitaciones se crean al iniciar la API. Las credenciales son las que pusiste en `.env`.
 
 ## 1. Login y token
 
@@ -65,7 +65,11 @@ Reserva 2:
 }
 ```
 
-Cada respuesta `201` devuelve el `id` autoincremental de SQLite. Anota ambos ids para las siguientes solicitudes.
+Cada respuesta `201` devuelve el `id` autoincremental. Anota ambos ids para las siguientes solicitudes.
+
+## Consultar disponibilidad
+
+Con token de huésped o admin, solicita `GET {{base_url}}/habitaciones/disponibles?fecha_entrada=2027-04-21&fecha_salida=2027-04-24`. La API devuelve solo las habitaciones libres durante todo el rango. Las reservas pendientes y confirmadas cuentan como ocupadas.
 
 ## 3. Listar y consultar
 
@@ -84,7 +88,7 @@ Envía el objeto completo, por ejemplo cambia su estado a `confirmada` o el núm
 
 **DELETE** `{{base_url}}/reservas/{{id_reserva_1}}`
 
-La respuesta esperada es `200`. Vuelve a hacer **GET** `/reservas`: debe permanecer la segunda reserva. Reinicia Flask y repite el GET para demostrar que SQLite conservó el dato.
+La respuesta esperada es `200`. Vuelve a hacer **GET** `/reservas`: debe permanecer la segunda reserva. Reinicia Flask y repite el GET para demostrar que la base configurada conservó el dato.
 
 ## Pruebas de error que pide la guía
 

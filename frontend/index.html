@@ -47,7 +47,7 @@
 </main>
 
 <main id="admin-view" class="shell" hidden>
-  <div class="page-heading"><div><p class="eyebrow">Administración · Reservas</p><h1>Calendario de estancias</h1><p class="intro">Revisa ocupación, entradas y salidas. Selecciona un día para consultar su agenda.</p></div><button id="new-booking-button" class="button" type="button">＋ <span>Nueva reserva</span></button></div>
+  <div class="page-heading"><div><p class="eyebrow">Administración · Reservas</p><h1>Calendario de estancias</h1><p class="intro">Revisa ocupación, entradas y salidas. Selecciona un día para consultar su agenda.</p><p id="room-inventory-summary" class="intro">Inventario: 80 habitaciones</p></div><button id="new-booking-button" class="button" type="button">＋ <span>Nueva reserva</span></button></div>
   <section class="summary" aria-label="Resumen de reservas">
     <div class="summary-item"><span id="month-count" class="summary-number">—</span><span class="summary-label">reservas activas este mes</span></div>
     <div class="summary-item"><span id="today-count" class="summary-number">—</span><span class="summary-label">habitaciones ocupadas hoy</span></div>
@@ -78,11 +78,12 @@
     <section class="guest-request">
       <p class="eyebrow">Nueva solicitud</p><h2>Planifica tu estancia</h2>
       <form id="guest-reservation-form" class="guest-form">
-        <label>Habitación solicitada<input name="habitacion" required maxlength="40" placeholder="Ej. 204"></label>
+        <label>Habitación disponible<select name="habitacion" required disabled><option value="">Selecciona fechas primero</option></select></label>
         <label>Número de huéspedes<input name="numero_huespedes" type="number" min="1" step="1" value="1" required></label>
         <label>Fecha de entrada<input name="fecha_entrada" type="date" required></label>
         <label>Fecha de salida<input name="fecha_salida" type="date" required></label>
-        <p class="form-hint">Tu solicitud quedará pendiente de confirmación. La habitación se confirma según disponibilidad.</p>
+        <p id="guest-room-hint" class="form-hint">Elige tus fechas para consultar las habitaciones libres. El hotel cuenta con 80 habitaciones.</p>
+        <p class="form-hint">Tu solicitud quedará pendiente de confirmación y bloqueará las fechas mientras el admin la revisa.</p>
         <button id="guest-submit" class="button" type="submit">Enviar solicitud</button>
       </form>
       <p id="guest-message" class="message" role="status" aria-live="polite"></p>
@@ -100,12 +101,13 @@
     <div class="fields">
       <label>Nombre del huésped<input name="huesped" autocomplete="name" required maxlength="120"></label>
       <label>Correo electrónico<input name="correo" type="email" autocomplete="email" required maxlength="254"></label>
-      <label>Habitación<input name="habitacion" required maxlength="40" placeholder="Ej. 204"></label>
+      <label>Habitación disponible<select name="habitacion" required disabled><option value="">Selecciona fechas primero</option></select></label>
       <label>Número de huéspedes<input name="numero_huespedes" type="number" min="1" step="1" value="1" required></label>
       <label>Fecha de entrada<input name="fecha_entrada" type="date" required></label>
       <label>Fecha de salida<input name="fecha_salida" type="date" required></label>
       <label>Estado<select name="estado" required><option value="pendiente">Pendiente</option><option value="confirmada">Confirmada</option><option value="cancelada">Cancelada</option></select></label>
     </div>
+    <p id="admin-room-hint" class="form-hint">Selecciona fechas para consultar disponibilidad.</p>
     <p class="form-hint">No se aceptan estancias superpuestas en la misma habitación. La API valida esta regla al guardar.</p>
     <div class="form-actions"><button class="button secondary" type="button" data-close="booking-dialog">Cancelar</button><button id="save-booking-button" class="button" type="submit">Guardar reserva</button></div>
   </form>

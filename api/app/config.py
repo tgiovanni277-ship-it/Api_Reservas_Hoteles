@@ -20,6 +20,9 @@ API_SECRET_KEY = required_setting("API_SECRET_KEY")
 API_USERNAME = required_setting("API_USERNAME")
 API_PASSWORD = required_setting("API_PASSWORD")
 TOKEN_HOURS = int(os.getenv("API_TOKEN_HOURS", "1"))
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or None
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 DATABASE = Path(os.getenv("API_DB_PATH", str(ROOT_DIR / "reservas_hotel.db")))
 if not DATABASE.is_absolute():
     DATABASE = ROOT_DIR / DATABASE

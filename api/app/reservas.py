@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, g, jsonify, request
 
 from app.auth import admin_required, token_required
@@ -11,7 +13,7 @@ def habitacion_disponible(connection, reserva, excluir_id=None):
     consulta = """
         SELECT 1
         FROM reservas_hotel
-        WHERE TRIM(habitacion) = TRIM(?) COLLATE NOCASE
+        WHERE LOWER(TRIM(habitacion)) = LOWER(TRIM(?))
           AND estado != 'cancelada'
           AND fecha_entrada < ?
           AND fecha_salida > ?
@@ -25,6 +27,64 @@ def habitacion_disponible(connection, reserva, excluir_id=None):
         consulta += " AND id != ?"
         parametros.append(excluir_id)
     return connection.execute(consulta, parametros).fetchone() is None
+
+
+def habitacion_registrada(connection, numero):
+    return connection.execute(
+        "SELECT 1 FROM habitaciones WHERE LOWER(numero) = LOWER(?) AND activa = TRUE",
+        (numero,),
+    ).fetchone() is not None
+
+
+def bloquear_habitacion(connection, numero):
+    if getattr(connection, "is_postgres", False):
+        connection.execute(
+            "SELECT id FROM habitaciones WHERE LOWER(numero) = LOWER(?) AND activa = TRUE FOR UPDATE",
+            (numero,),
+        ).fetchone()
+
+
+@reservas_bp.get("/habitaciones")
+@token_required
+def listar_habitaciones():
+    with get_db() as connection:
+        rooms = connection.execute(
+            "SELECT numero AS habitacion, piso FROM habitaciones WHERE activa = TRUE ORDER BY numero"
+        ).fetchall()
+    return jsonify([dict(room) for room in rooms]), 200
+
+
+@reservas_bp.get("/habitaciones/disponibles")
+@token_required
+def listar_habitaciones_disponibles():
+    fecha_entrada = request.args.get("fecha_entrada", "")
+    fecha_salida = request.args.get("fecha_salida", "")
+    try:
+        entrada = date.fromisoformat(fecha_entrada)
+        salida = date.fromisoformat(fecha_salida)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Envía fecha_entrada y fecha_salida con formato AAAA-MM-DD"}), 400
+    if salida <= entrada:
+        return jsonify({"error": "fecha_salida debe ser posterior a fecha_entrada"}), 400
+
+    with get_db() as connection:
+        rooms = connection.execute(
+            """
+            SELECT h.numero AS habitacion, h.piso
+            FROM habitaciones h
+            WHERE h.activa = TRUE
+              AND NOT EXISTS (
+                  SELECT 1 FROM reservas_hotel r
+                  WHERE LOWER(TRIM(r.habitacion)) = LOWER(h.numero)
+                    AND r.estado != 'cancelada'
+                    AND r.fecha_entrada < ?
+                    AND r.fecha_salida > ?
+              )
+            ORDER BY h.numero
+            """,
+            (salida.isoformat(), entrada.isoformat()),
+        ).fetchall()
+    return jsonify([dict(room) for room in rooms]), 200
 
 
 def reserva_visible(connection, reserva_id):
@@ -107,6 +167,9 @@ def crear_reserva():
     conflicto = False
     with get_db() as connection:
         connection.execute("BEGIN IMMEDIATE")
+        bloquear_habitacion(connection, reserva["habitacion"])
+        if not habitacion_registrada(connection, reserva["habitacion"]):
+            return jsonify({"error": "La habitación seleccionada no existe en el inventario"}), 400
         if (
             reserva["estado"] != "cancelada"
             and not habitacion_disponible(connection, reserva)
@@ -151,24 +214,28 @@ def actualizar_reserva(reserva_id):
         ).fetchone()
         if existente is None:
             no_encontrada = True
-        elif reserva["estado"] != "cancelada" and not habitacion_disponible(
-            connection, reserva, excluir_id=int(reserva_id)
-        ):
-            conflicto = True
+        elif not habitacion_registrada(connection, reserva["habitacion"]):
+            return jsonify({"error": "La habitación seleccionada no existe en el inventario"}), 400
         else:
-            connection.execute(
-                """
-                UPDATE reservas_hotel
-                SET huesped = ?, correo = ?, habitacion = ?, fecha_entrada = ?,
-                    fecha_salida = ?, numero_huespedes = ?, estado = ?
-                WHERE id = ?
-                """,
-                (
-                    reserva["huesped"], reserva["correo"], reserva["habitacion"],
-                    reserva["fecha_entrada"], reserva["fecha_salida"],
-                    reserva["numero_huespedes"], reserva["estado"], int(reserva_id),
-                ),
-            )
+            bloquear_habitacion(connection, reserva["habitacion"])
+            if reserva["estado"] != "cancelada" and not habitacion_disponible(
+                connection, reserva, excluir_id=int(reserva_id)
+            ):
+                conflicto = True
+            else:
+                connection.execute(
+                    """
+                    UPDATE reservas_hotel
+                    SET huesped = ?, correo = ?, habitacion = ?, fecha_entrada = ?,
+                        fecha_salida = ?, numero_huespedes = ?, estado = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        reserva["huesped"], reserva["correo"], reserva["habitacion"],
+                        reserva["fecha_entrada"], reserva["fecha_salida"],
+                        reserva["numero_huespedes"], reserva["estado"], int(reserva_id),
+                    ),
+                )
     if no_encontrada:
         return jsonify({"error": "Reserva de hotel no encontrada"}), 404
     if conflicto:
