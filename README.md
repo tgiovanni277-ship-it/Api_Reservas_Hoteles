@@ -1,98 +1,135 @@
-# Reservas de hotel
+<div align="center">
 
-Monorepo para el MVP de reservas. Vercel publica el frontend de Vite; Render ejecuta la API Flask; PostgreSQL en Supabase conserva usuarios y reservas. SQLite sigue disponible para desarrollo local sin `DATABASE_URL`.
-MVP = https://frontend-rho-one-25.vercel.app/
+# 🏨 Reservas de hotel
 
-## Estructura
+**MVP de reservas hoteleras con portal para huéspedes y panel de administración.**
 
-    frontend/                 Interfaz Vite para Vercel
-      src/main.js              Acceso por rol, calendario y portal de huésped
-      src/style.css
-      index.html
-      package.json
-      vite.config.js
-    api/                       API Flask para Render
-      app/
-      Dockerfile
-      .dockerignore
-      requirements.txt
-      run.py
-    docs/
-      despliegue_render.md
-    .env.example
-    README.md
+[Ver demo](https://frontend-rho-one-25.vercel.app/) · [Guía de despliegue](docs/despliegue_render.md) · [Guía de Postman](docs/guia_postman.md)
+
+![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Flask 3](https://img.shields.io/badge/Flask-3.x-000000?logo=flask&logoColor=white)
+![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-API-2496ED?logo=docker&logoColor=white)
+![Render](https://img.shields.io/badge/Render-API-46E3B7?logo=render&logoColor=black)
+![Vercel](https://img.shields.io/badge/Vercel-Frontend-000000?logo=vercel&logoColor=white)
+
+</div>
+
+## Qué incluye
+
+- **Portal de huéspedes:** registro, inicio de sesión, consulta de habitaciones disponibles, solicitud de reservas y cancelación de reservas propias.
+- **Panel de administración:** calendario global, revisión y confirmación de solicitudes, y gestión de reservas.
+- **Control de disponibilidad:** el inventario inicial tiene 80 habitaciones (101–120, 201–220, 301–320 y 401–420). La API comprueba disponibilidad antes de crear o actualizar una reserva.
+- **Acceso por rol:** la API asigna y valida los roles `admin` y `user` mediante JWT. Las contraseñas de huéspedes se almacenan como hash.
+
+## Arquitectura
+
+~~~text
+Navegador → Frontend Vite (Vercel) → API Flask (Render) → PostgreSQL (Supabase)
+~~~
+
+El frontend llama a la API por HTTPS; solo la API accede a la base de datos. Para desarrollo local, Flask puede usar SQLite si `DATABASE_URL` está vacía. La API se empaqueta con Docker y se publica manualmente en Render, sin GitHub Actions.
+
+| Directorio | Contenido |
+| --- | --- |
+| `frontend/` | Interfaz Vite y configuración de Vercel |
+| `api/` | API Flask, Dockerfile y script de migración |
+| `docs/` | Guías de despliegue, Postman y entrega |
 
 ## Desarrollo local
 
-Requiere Python 3.10+ y Node.js LTS. Desde la raíz del repo:
+**Requisitos:** Python 3.10 o superior y Node.js LTS. Los comandos siguientes usan PowerShell y se ejecutan desde la raíz del repositorio.
 
-    py -m venv .venv
-    .\.venv\Scripts\Activate.ps1
-    pip install -r api\requirements.txt
-    Copy-Item .env.example .env
+1. Prepara el entorno de la API:
 
-Antes de iniciar, reemplaza en `.env` los marcadores de `API_SECRET_KEY`, `API_USERNAME` y `API_PASSWORD` por valores propios.
+   ~~~powershell
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   pip install -r api\requirements.txt
+   Copy-Item .env.example .env
+   ~~~
 
-    python api\run.py
+2. En `.env`, sustituye los valores de ejemplo de `API_SECRET_KEY`, `API_USERNAME` y `API_PASSWORD`. Deja `DATABASE_URL` vacía para usar SQLite local. Inicia Flask:
 
-En otra terminal:
+   ~~~powershell
+   python api\run.py
+   ~~~
 
-    cd frontend
-    npm install
-    Copy-Item .env.example .env
-    npm run dev
+3. En otra terminal, inicia el frontend:
 
-Vite publica la interfaz en http://localhost:5173 y proxifica /login, /register, /reservas y /habitaciones a Flask en http://127.0.0.1:5000. La variable VITE_DEV_API_PROXY_TARGET permite cambiar el backend local.
+   ~~~powershell
+   cd frontend
+   npm install
+   Copy-Item .env.example .env
+   npm run dev
+   ~~~
 
-## Roles y permisos
+Abre [http://localhost:5173](http://localhost:5173). Vite redirige `/login`, `/register`, `/reservas` y `/habitaciones` a Flask en `http://127.0.0.1:5000`. Si la API usa otra dirección local, configura `VITE_DEV_API_PROXY_TARGET` antes de iniciar Vite.
 
-- Admin: entra con API_USERNAME y API_PASSWORD de la configuración del backend. Ve el calendario global, revisa solicitudes de huéspedes y confirma, crea, edita o elimina reservas.
-- Huésped: crea una cuenta desde la pantalla de acceso. Las cuentas nuevas siempre reciben rol user. Puede solicitar reservas, consultar únicamente las propias y cancelarlas.
-- El servidor decide el rol y lo incluye en el JWT. No hay selector de rol ni permisos confiados al navegador.
-- Las contraseñas de huésped se guardan como hash. El token se mantiene en memoria del navegador y se pierde al cerrar sesión o recargar.
-- Los registros antiguos de SQLite no tienen cuenta asociada y solo aparecen para admin.
-- El inventario inicial contiene 80 habitaciones: 101–120, 201–220, 301–320 y 401–420.
-- Huéspedes y admin consultan habitaciones libres según las fechas seleccionadas. Las solicitudes pendientes y confirmadas ocupan habitación; las canceladas liberan fechas.
-- El calendario indica reservas registradas; la API es la autoridad para verificar disponibilidad al crear o actualizar una reserva.
+### Variables de entorno
+
+| Variable | Dónde | Uso |
+| --- | --- | --- |
+| `API_SECRET_KEY` | API | Clave obligatoria para firmar JWT |
+| `API_USERNAME` / `API_PASSWORD` | API | Credenciales obligatorias de administración |
+| `DATABASE_URL` | API | URI PostgreSQL de Supabase; vacía para SQLite local |
+| `CORS_ALLOWED_ORIGINS` | API | Orígenes del frontend permitidos, separados por comas |
+| `VITE_API_BASE_URL` | Frontend en Vercel | URL HTTPS pública de la API en Render |
+| `API_TOKEN_HOURS` | API, opcional | Duración del token; por defecto, 1 hora |
+| `API_DB_PATH` | API local, opcional | Ruta del archivo SQLite |
+
+Los archivos `.env.example` de la raíz y de `frontend/` contienen la configuración de referencia. No publiques `.env`, contraseñas ni la URI de PostgreSQL. Las variables `VITE_*` se incorporan al código del navegador; `VITE_API_BASE_URL` debe contener únicamente la URL pública de la API.
+
+## Reservas y permisos
+
+- Una cuenta nueva recibe el rol `user`. El administrador accede con las credenciales configuradas en la API.
+- El huésped consulta y cancela únicamente sus propias reservas; el administrador gestiona todas. Los registros antiguos de SQLite sin cuenta asociada solo aparecen en el panel de administración.
+- Las reservas `pendiente` y `confirmada` ocupan la habitación desde la fecha de entrada, incluida, hasta la fecha de salida, excluida. Las reservas canceladas liberan esas fechas.
+- Si una reserva se cruza con otra para la misma habitación, la API responde con HTTP `409`. El calendario ayuda a visualizar las reservas; la validación final ocurre en la API.
+
+## API principal
+
+Las rutas protegidas requieren `Authorization: Bearer <token>`.
+
+| Método | Ruta | Acceso |
+| --- | --- | --- |
+| `POST` | `/register` | Público; crea una cuenta de huésped |
+| `POST` | `/login` | Público; inicia sesión |
+| `GET` | `/health` | Público; estado del servicio |
+| `GET` | `/habitaciones` | Usuario autenticado; inventario |
+| `GET` | `/habitaciones/disponibles?fecha_entrada=AAAA-MM-DD&fecha_salida=AAAA-MM-DD` | Usuario autenticado; disponibilidad |
+| `GET` | `/reservas` | Administrador: todas; huésped: propias |
+| `GET` | `/reservas/{id}` | Administrador: cualquiera; huésped: propia |
+| `POST` | `/reservas` | Administrador: crea; huésped: solicita |
+| `PUT` | `/reservas/{id}` | Solo administrador |
+| `DELETE` | `/reservas/{id}` | Administrador: elimina; huésped: cancela la propia |
+
+Consulta la [guía de Postman](docs/guia_postman.md) para ejemplos de peticiones.
 
 ## Despliegue
 
-- Vercel: Root Directory frontend/, comando npm run build, salida dist/.
-- Vercel: definir VITE_API_BASE_URL con la URL HTTPS de Flask en Render.
-- Render Web Service: importar el repo de GitHub, usar `api/` como raíz de Docker y configurar `DATABASE_URL`, `API_USERNAME`, `API_PASSWORD`, `API_SECRET_KEY` y `CORS_ALLOWED_ORIGINS` como variables de entorno.
-- CORS_ALLOWED_ORIGINS es una lista separada por comas de orígenes exactos, sin rutas. Incluye el dominio de producción Vercel y los previews autorizados. No usar * en producción.
-- El despliegue de la API es manual con Docker y Render; no requiere GitHub Actions. Sigue [la guía de despliegue](docs/despliegue_render.md).
+1. **Supabase:** crea una base PostgreSQL y obtén su URI desde **Connect**. Guárdala como `DATABASE_URL` únicamente en la API.
+2. **Render:** crea un Web Service Docker desde el repositorio, con `api` como directorio raíz, `Dockerfile` como Dockerfile, `.` como contexto de construcción y `/health` como ruta de salud. Configura `DATABASE_URL`, `API_SECRET_KEY`, `API_USERNAME`, `API_PASSWORD` y `CORS_ALLOWED_ORIGINS`.
+3. **Vercel:** usa `frontend` como directorio raíz, `npm run build` como comando de construcción y `dist` como salida. Configura `VITE_API_BASE_URL` con la URL HTTPS de Render, sin ruta final.
+4. **Verifica:** comprueba `/health`, el inicio de sesión, la disponibilidad y el guardado de una reserva desde el frontend.
 
-El navegador llama por HTTPS a Flask en Render; Flask administra autorización y accede a la base de datos. No conectar el frontend directamente a SQLite o PostgreSQL.
+Para mantener el despliegue manual de la API, desactiva **Auto-Deploy** en Render. La [guía de despliegue](docs/despliegue_render.md) detalla la configuración y las comprobaciones. El almacenamiento del contenedor de Render es efímero: usa PostgreSQL para los datos de producción.
 
-## Datos y reglas
+### Migrar datos de SQLite a PostgreSQL
 
-SQLite local conserva las tablas `usuarios`, `reservas_hotel` y `habitaciones`. PostgreSQL crea el mismo esquema al arrancar cuando `DATABASE_URL` está definida. El inventario inicial se crea con 80 habitaciones y no elimina registros existentes. Reservas pendientes y confirmadas ocupan una habitación desde entrada incluida hasta salida excluida; las canceladas no bloquean. La API rechaza cruces con HTTP 409.
+Si ya tienes datos locales que deseas conservar:
 
-### Migrar la base SQLite existente a Supabase PostgreSQL
+1. Haz una copia de seguridad del archivo SQLite y configura `DATABASE_URL` en tu `.env` local con la URI de Supabase.
+2. Instala las dependencias con `pip install -r api/requirements.txt`.
+3. Ejecuta `python api/scripts/migrate_sqlite_to_postgres.py` desde la raíz. Puedes pasar otra ruta SQLite como argumento.
+4. Comprueba en PostgreSQL los usuarios, las reservas y el inventario antes de usar la API en producción.
 
-1. En Supabase, crea el proyecto y copia la URI PostgreSQL desde **Connect**.
-2. Instala las dependencias actualizadas: `pip install -r api/requirements.txt`.
-3. En `.env`, configura `DATABASE_URL` con la URI de Supabase. Para desarrollo local con SQLite, deja esa variable vacía.
-4. Ejecuta desde la raíz: `python api/scripts/migrate_sqlite_to_postgres.py`. También puedes pasar otra ruta SQLite como argumento.
-5. El script crea el esquema y las 80 habitaciones si hacen falta, copia usuarios y reservas preservando sus IDs y hashes de contraseña, ajusta las secuencias y deja intacto el archivo SQLite.
-6. Arranca la API y verifica login, reservas e inventario. Haz una copia de seguridad antes de migrar datos importantes.
+El script conserva los IDs y hashes de contraseña, ajusta las secuencias y no modifica el archivo SQLite de origen.
 
-La URI es un secreto: no la pongas en Git, en el frontend ni en `VITE_API_BASE_URL`. En Render debe guardarse como variable protegida `DATABASE_URL`.
+## Documentación
 
-## Rutas principales
-
-| Método | Ruta | Permiso |
-|---|---|---|
-| POST | /register | Público; crea cuenta de huésped |
-| POST | /login | Público; responde con rol admin o user |
-| GET | /health | Público; estado del servicio |
-| GET | /habitaciones | Usuario autenticado; lista el inventario |
-| GET | /habitaciones/disponibles?fecha_entrada=AAAA-MM-DD&fecha_salida=AAAA-MM-DD | Usuario autenticado; habitaciones libres en el rango |
-| GET | /reservas | Admin: todas; user: propias |
-| GET | /reservas/{id} | Admin: cualquiera; user: propia |
-| POST | /reservas | Admin crea; user solicita en estado pendiente |
-| PUT | /reservas/{id} | Solo admin |
-| DELETE | /reservas/{id} | Admin elimina; user cancela la propia |
-
-La guía de Postman está en docs/guia_postman.md y el resumen académico, en docs/ENTREGA.md.
+- [Despliegue en Render, Supabase y Vercel](docs/despliegue_render.md)
+- [Guía de pruebas con Postman](docs/guia_postman.md)
+- [Resumen de la entrega](docs/ENTREGA.md)
+- [Evidencias en Postman (PDF)](docs/Evidencias%20en%20POSTMAN.pdf)
